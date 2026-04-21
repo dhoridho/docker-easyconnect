@@ -212,15 +212,11 @@ update-desktop-database "${HOME}/.local/share/applications/" 2>/dev/null || true
 # ── 11. Add shell alias ───────────────────────────────────────────────────────
 ALIAS_LINE="alias ec=\"${INSTALL_DIR}/ec.sh\""
 
-if grep -qF 'alias ec=' "${BASHRC}" 2>/dev/null; then
-  # Replace any existing ec alias (old or new)
-  sed -i "s|alias ec=.*|${ALIAS_LINE}|" "${BASHRC}"
-  info "Updated existing 'ec' alias in ${BASHRC}."
-else
-  echo "" >> "${BASHRC}"
-  echo "${ALIAS_LINE}" >> "${BASHRC}"
-  info "Added 'ec' alias to ${BASHRC}."
-fi
+# Remove all existing ec alias lines first, then add once
+sed -i '/^alias ec=/d' "${BASHRC}"
+echo "" >> "${BASHRC}"
+echo "${ALIAS_LINE}" >> "${BASHRC}"
+info "Set 'ec' alias in ${BASHRC}."
 
 # ── 12. Remove old EasyConnect aliases from bashrc ───────────────────────────
 if grep -q "easyconnect\|econnect\|hagb\|easyConnect" "${BASHRC}" 2>/dev/null; then

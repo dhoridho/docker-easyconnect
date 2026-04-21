@@ -39,16 +39,28 @@ _compose() {
   docker compose --env-file "${COMPOSE_DIR}/.env" -f "${COMPOSE_DIR}/docker-compose.yml" "$@"
 }
 
+_is_running() {
+  [[ "$(docker inspect -f '{{.State.Running}}' easyconnect 2>/dev/null)" == "true" ]]
+}
+
+_vpn_connected() {
+  ip link show tun0 &>/dev/null
+}
+
 cmd="${1:-help}"
 
 case "$cmd" in
   start)
+    if _is_running; then
+      echo "EasyConnect already running."
+      _vpn_connected && echo "VPN: connected (tun0 up)" || echo "VPN: container up, not connected yet"
+      exit 0
+    fi
     _require_tun
     _xhost_allow
     mkdir -p "$DATA_DIR"
     _compose up -d
     echo "EasyConnect started."
-    # watch for container exit and clean up iptables automatically
     (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
     disown
     ;;
@@ -72,6 +84,7 @@ case "$cmd" in
 
   status)
     _compose ps
+    _vpn_connected && echo "VPN: connected (tun0 up)" || echo "VPN: not connected"
     ;;
 
   shell)
