@@ -1,0 +1,17 @@
+services:
+  easyconnect:
+    image: ${IMAGE:-hagb/docker-easyconnect:latest}
+    container_name: easyconnect
+    network_mode: host
+    restart: "no"
+    devices:
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_QPA_PLATFORM=xcb
+      - EXIT=1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${DATA_DIR:-~/.easyconnect-data}:/root/conf
