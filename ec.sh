@@ -25,6 +25,13 @@ _cleanup_iptables() {
   sudo iptables -t mangle -F
   sudo iptables -t mangle -X
   sudo ufw reload &>/dev/null
+
+  # Re-detect router for current network and update DNS
+  local router
+  router=$(ip route show default | awk '/default/ {print $3; exit}')
+  if [[ -n "$router" ]]; then
+    { echo "nameserver 1.1.1.1"; echo "nameserver ${router}"; } | sudo tee /etc/resolv.conf > /dev/null
+  fi
   echo "iptables cleaned."
 }
 
