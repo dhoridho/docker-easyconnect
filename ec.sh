@@ -22,7 +22,7 @@ _cleanup_iptables() {
   sudo iptables -t nat -X
   sudo iptables -t mangle -F
   sudo iptables -t mangle -X
-  sudo ufw reload &>/dev/null
+  sudo ufw reload &>/dev/null 2>&1 || true
   local router
   router=$(ip route show default | awk '/default/ {print $3; exit}')
   if [[ -n "$router" ]]; then
