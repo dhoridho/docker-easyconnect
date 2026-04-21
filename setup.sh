@@ -6,6 +6,9 @@ DATA_DIR="${HOME}/.easyconnect-data"
 ICON_PATH="${HOME}/.local/share/icons/easyconnect.png"
 DESKTOP_PATH="${HOME}/.local/share/applications/easyconnect.desktop"
 BASHRC="${HOME}/.bashrc"
+IMAGE="hagb/docker-easyconnect@sha256:40c411e71198111871ac281cee78ff0ae961139897674c7df8fa5eec0da78e80"
+ROUTER_IP=$(ip route show default | awk '/default/ {print $3; exit}')
+ROUTER_IP="${ROUTER_IP:-192.168.1.1}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -67,7 +70,7 @@ info "Writing .env..."
 cat > "${INSTALL_DIR}/.env" <<EOF
 DISPLAY=:0
 DATA_DIR=${DATA_DIR}
-IMAGE=hagb/docker-easyconnect:latest
+IMAGE=${IMAGE}
 EOF
 
 # ── 6. Write ec.sh ───────────────────────────────────────────────────────────
@@ -168,10 +171,10 @@ info "Done."
 
 # ── 8. Fix DNS (bypass systemd-resolved) ─────────────────────────────────────
 if grep -q "127.0.0.53" /etc/resolv.conf 2>/dev/null; then
-  warning "systemd-resolved detected. Fixing DNS to use 1.1.1.1 / 192.168.1.1..."
+  warning "systemd-resolved detected. Fixing DNS to use 1.1.1.1 / ${ROUTER_IP}..."
   sudo rm -f /etc/resolv.conf
   echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf > /dev/null
-  echo "nameserver 192.168.1.1" | sudo tee -a /etc/resolv.conf > /dev/null
+  echo "nameserver ${ROUTER_IP}" | sudo tee -a /etc/resolv.conf > /dev/null
   info "DNS fixed."
 else
   info "DNS looks fine, skipping."
@@ -179,9 +182,9 @@ fi
 
 # ── 8. Extract icon from image ────────────────────────────────────────────────
 info "Pulling image and extracting icon..."
-docker pull hagb/docker-easyconnect:latest --quiet
+docker pull "${IMAGE}" --quiet
 mkdir -p "${HOME}/.local/share/icons"
-TMP_CTR=$(docker create hagb/docker-easyconnect:latest)
+TMP_CTR=$(docker create "${IMAGE}")
 docker cp "${TMP_CTR}:/usr/share/sangfor/EasyConnect/resources/EasyConnect.png" "${ICON_PATH}"
 docker rm "${TMP_CTR}" > /dev/null
 
