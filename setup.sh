@@ -163,7 +163,11 @@ EOF
 
 chmod +x "${INSTALL_DIR}/ec.sh"
 
-# ── 7. Passwordless sudo for iptables (needed for cleanup on VPN disconnect) ──
+# ── 7. System-wide ec command ─────────────────────────────────────────────────
+info "Installing ec to /usr/local/bin..."
+sudo ln -sf "${INSTALL_DIR}/ec.sh" /usr/local/bin/ec
+
+# ── 8. Passwordless sudo for iptables (needed for cleanup on VPN disconnect) ──
 info "Configuring passwordless sudo for iptables..."
 echo "${USER} ALL=(ALL) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ufw, /usr/bin/tee /etc/resolv.conf" | sudo tee /etc/sudoers.d/easyconnect-iptables > /dev/null
 sudo chmod 440 /etc/sudoers.d/easyconnect-iptables

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-COMPOSE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 DATA_DIR="${HOME}/.easyconnect-data"
 
 _require_tun() {
