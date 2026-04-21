@@ -16,13 +16,14 @@ _xhost_allow() {
 }
 
 _cleanup_iptables() {
-  sudo iptables -F
-  sudo iptables -X
-  sudo iptables -t nat -F
-  sudo iptables -t nat -X
-  sudo iptables -t mangle -F
-  sudo iptables -t mangle -X
-  sudo ufw reload &>/dev/null 2>&1 || true
+  sudo iptables -F 2>/dev/null || true
+  sudo iptables -X 2>/dev/null || true
+  sudo iptables -t nat -F 2>/dev/null || true
+  sudo iptables -t nat -X 2>/dev/null || true
+  sudo iptables -t mangle -F 2>/dev/null || true
+  sudo iptables -t mangle -X 2>/dev/null || true
+  sudo ufw reload &>/dev/null || true
+  ip link show tun0 &>/dev/null && sudo ip link delete tun0 2>/dev/null || true
   local router
   router=$(ip route show default | awk '/default/ {print $3; exit}')
   if [[ -n "$router" ]]; then
@@ -59,13 +60,34 @@ case "$cmd" in
     _require_tun
     _xhost_allow
     mkdir -p "$DATA_DIR"
-    _compose up -d
-    echo "started"
+    _compose up -d easyconnect
+    clip=$(grep '^CLIP_TEXT=' "${COMPOSE_DIR}/.env" | cut -d= -f2-)
+    if [[ -n "$clip" ]]; then
+      echo -n "$clip" | xclip -selection clipboard 2>/dev/null || true
+    fi
+    echo "started (GUI)"
+    (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
+    disown
+    ;;
+
+  cli)
+    if _is_running; then
+      echo "already running — stop it first with: ec stop"
+      exit 1
+    fi
+    _require_tun
+    mkdir -p "$DATA_DIR"
+    _compose --profile cli up -d easyconnect-cli
+    echo "started (CLI)"
     (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
     disown
     ;;
 
   stop)
+    if ! _is_running; then
+      echo "not running"
+      exit 0
+    fi
     _compose down
     _cleanup_iptables
     echo "stopped"
@@ -108,7 +130,8 @@ case "$cmd" in
   help|*)
     echo "usage: ec <command>"
     echo ""
-    echo "  start     start VPN"
+    echo "  start     start VPN (GUI)"
+    echo "  cli       start VPN (headless, uses credentials from .env)"
     echo "  stop      stop VPN"
     echo "  restart   restart container"
     echo "  recreate  stop, clean, restart (keeps data)"

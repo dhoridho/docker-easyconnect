@@ -7,6 +7,7 @@ ICON_PATH="${HOME}/.local/share/icons/easyconnect.png"
 DESKTOP_PATH="${HOME}/.local/share/applications/easyconnect.desktop"
 BASHRC="${HOME}/.bashrc"
 IMAGE="hagb/docker-easyconnect@sha256:40c411e71198111871ac281cee78ff0ae961139897674c7df8fa5eec0da78e80"
+IMAGE_CLI="hagb/docker-easyconnect@sha256:2ffb7880436e25fb3764b64d18bd5418d81dc03b05899de68ff7c34b80e0363a"
 ROUTER_IP=$(ip route show default | awk '/default/ {print $3; exit}')
 ROUTER_IP="${ROUTER_IP:-192.168.1.1}"
 
@@ -32,6 +33,9 @@ if [[ ! -e /dev/net/tun ]]; then
   sudo modprobe tun
 fi
 
+info "Dependencies..."
+sudo apt-get install -y xclip libnotify-bin &>/dev/null
+
 info "Writing config files..."
 mkdir -p "${INSTALL_DIR}"
 
@@ -51,15 +55,40 @@ services:
       - DISPLAY=${DISPLAY:-:0}
       - QT_QPA_PLATFORM=xcb
       - EXIT=1
+      - CLIP_TEXT=${CLIP_TEXT}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${DATA_DIR:-~/.easyconnect-data}:/root/conf
+
+  easyconnect-cli:
+    image: ${IMAGE_CLI:-hagb/docker-easyconnect:cli}
+    container_name: easyconnect
+    network_mode: host
+    restart: "no"
+    stop_grace_period: 5s
+    devices:
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - EXIT=1
+      - CLI_OPTS=-d ${SVPN_HOST} -u ${VPN_USER} -p ${VPN_PASS}
+    volumes:
+      - ${DATA_DIR:-~/.easyconnect-data}:/root/conf
+    profiles:
+      - cli
 EOF
 
 cat > "${INSTALL_DIR}/.env" <<EOF
 DISPLAY=:0
 DATA_DIR=${DATA_DIR}
 IMAGE=${IMAGE}
+IMAGE_CLI=${IMAGE_CLI}
+
+SVPN_HOST=
+VPN_USER=
+VPN_PASS=
+CLIP_TEXT=
 EOF
 
 cp "${BASH_SOURCE[0]%/*}/ec.sh" "${INSTALL_DIR}/ec.sh"
@@ -69,7 +98,7 @@ info "Installing ec..."
 sudo ln -sf "${INSTALL_DIR}/ec.sh" /usr/local/bin/ec
 
 info "Sudoers..."
-echo "${USER} ALL=(ALL) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ufw, /usr/bin/tee /etc/resolv.conf" | sudo tee /etc/sudoers.d/easyconnect-iptables > /dev/null
+echo "${USER} ALL=(ALL) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ufw, /usr/bin/tee /etc/resolv.conf, /usr/sbin/ip" | sudo tee /etc/sudoers.d/easyconnect-iptables > /dev/null
 sudo chmod 440 /etc/sudoers.d/easyconnect-iptables
 
 if grep -q "127.0.0.53" /etc/resolv.conf 2>/dev/null; then
@@ -109,4 +138,5 @@ echo "alias ec=\"${INSTALL_DIR}/ec.sh\"" >> "${BASHRC}"
 
 echo ""
 echo -e "${GREEN}Done.${NC} Run: source ~/.bashrc && ec start"
+echo "Fill in SVPN_HOST, VPN_USER, VPN_PASS, CLIP_TEXT in ${INSTALL_DIR}/.env"
 echo "First launch: enter your VPN URL, connect, then close the window to save credentials."
