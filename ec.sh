@@ -44,13 +44,23 @@ _vpn_connected() {
 }
 
 _keepalive() {
-  local host
+  local host ping_ok=1
   host=$(grep '^SVPN_HOST=' "${COMPOSE_DIR}/.env" | cut -d= -f2- | sed 's|https\?://||' | cut -d: -f1 | cut -d/ -f1)
   [[ -z "$host" ]] && return
+  echo $BASHPID > /tmp/easyconnect-keepalive.pid
+  export DISPLAY="${DISPLAY:-:0}"
   while _is_running; do
-    _vpn_connected && ping -c 1 -W 3 "$host" &>/dev/null || true
+    if _vpn_connected; then
+      if ping -c 1 -W 3 "$host" &>/dev/null; then
+        ping_ok=1
+      elif [[ $ping_ok -eq 1 ]]; then
+        notify-send -u normal "EasyConnect" "Keepalive ping failed — VPN may be unstable." 2>/dev/null || true
+        ping_ok=0
+      fi
+    fi
     sleep 60
   done
+  rm -f /tmp/easyconnect-keepalive.pid
 }
 
 _watch_disconnect() {
@@ -83,8 +93,8 @@ case "$cmd" in
         notify-send "EasyConnect" "Already running — VPN connected." --icon=network-vpn 2>/dev/null || true
         echo "already running — VPN connected"
       else
-        notify-send "EasyConnect" "Already running — not connected yet." --icon=network-vpn 2>/dev/null || true
-        echo "already running — not connected yet"
+        notify-send "EasyConnect" "Already running — not connected. Re-Login may be required in the app." --icon=network-vpn 2>/dev/null || true
+        echo "already running — not connected (Re-Login may be required in the app)"
       fi
       exit 0
     fi
@@ -142,6 +152,11 @@ case "$cmd" in
   status)
     _compose ps
     _vpn_connected && echo "VPN: connected" || echo "VPN: not connected"
+    if [[ -f /tmp/easyconnect-keepalive.pid ]] && kill -0 "$(cat /tmp/easyconnect-keepalive.pid)" 2>/dev/null; then
+      echo "Keepalive: running (pid $(cat /tmp/easyconnect-keepalive.pid))"
+    else
+      echo "Keepalive: not running"
+    fi
     ;;
 
   shell)

@@ -2,6 +2,10 @@
 
 Sangfor EasyConnect VPN in Docker with X11 GUI, persistent credentials, automatic clipboard fill, and iptables cleanup on disconnect.
 
+## Compatibility
+
+Tested on **Ubuntu 24.04 with GNOME**. Should work on any Ubuntu/Debian with an X11 display. Other distros (Arch, Fedora) may need manual adjustments — `apt-get`, `ufw`, and `libnotify` are Ubuntu/Debian-specific.
+
 ## Requirements
 
 - Docker + Docker Compose
