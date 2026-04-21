@@ -43,6 +43,37 @@ _vpn_connected() {
   ip link show tun0 &>/dev/null
 }
 
+_keepalive() {
+  local host
+  host=$(grep '^SVPN_HOST=' "${COMPOSE_DIR}/.env" | cut -d= -f2- | sed 's|https\?://||' | cut -d: -f1 | cut -d/ -f1)
+  [[ -z "$host" ]] && return
+  while _is_running; do
+    _vpn_connected && ping -c 1 -W 3 "$host" &>/dev/null || true
+    sleep 60
+  done
+}
+
+_watch_disconnect() {
+  local was_connected=0
+  local clip
+  clip=$(grep '^CLIP_TEXT=' "${COMPOSE_DIR}/.env" | cut -d= -f2-)
+  export DISPLAY="${DISPLAY:-:0}"
+  while _is_running; do
+    if _vpn_connected; then
+      was_connected=1
+    elif [[ $was_connected -eq 1 ]]; then
+      if [[ -n "$clip" ]]; then
+        action=$(notify-send -u critical "EasyConnect" "VPN disconnected — Re-Login required." --action="copy=Copy Password" --wait 2>/dev/null)
+        [[ "$action" == "copy" ]] && echo -n "$clip" | xclip -selection clipboard 2>/dev/null || true
+      else
+        notify-send -u critical "EasyConnect" "VPN disconnected — Re-Login required." 2>/dev/null || true
+      fi
+      was_connected=0
+    fi
+    sleep 5
+  done
+}
+
 cmd="${1:-help}"
 
 case "$cmd" in
@@ -67,6 +98,10 @@ case "$cmd" in
     fi
     echo "started (GUI)"
     (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
+    disown
+    (_keepalive) &
+    disown
+    (_watch_disconnect) &
     disown
     ;;
 
