@@ -49,11 +49,13 @@ EasyConnect can break DNS by conflicting with `systemd-resolved`. Fixed by repla
 
 ```bash
 sudo rm -f /etc/resolv.conf
-echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
-echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf
+echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
+echo "nameserver 192.168.1.1" | sudo tee -a /etc/resolv.conf
 ```
 
-**Tradeoff:** `systemd-resolved` is bypassed. DNS always hits Google/Cloudflare. VPN-pushed DNS (internal company hostnames) won't auto-apply. Fine for internet-only VPN use — breaks if you need to resolve internal hostnames over VPN.
+**Why not 8.8.8.8:** EasyConnect routes `8.8.8.8` through `tun0` — unreachable when VPN is down, breaking DNS entirely.
+
+**Tradeoff:** `systemd-resolved` is bypassed. VPN-pushed DNS (internal company hostnames) won't auto-apply. Fine for internet-only VPN use.
 
 ## Troubleshooting
 

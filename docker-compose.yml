@@ -12,6 +12,7 @@ services:
       - DISPLAY=${DISPLAY:-:0}
       - QT_QPA_PLATFORM=xcb
       - EXIT=1
+    stop_grace_period: 5s
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${DATA_DIR:-~/.easyconnect-data}:/root/conf

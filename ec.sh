@@ -16,6 +16,18 @@ _xhost_allow() {
   xhost +local:docker &>/dev/null || true
 }
 
+_cleanup_iptables() {
+  echo "Cleaning up EasyConnect iptables rules..."
+  sudo iptables -F
+  sudo iptables -X
+  sudo iptables -t nat -F
+  sudo iptables -t nat -X
+  sudo iptables -t mangle -F
+  sudo iptables -t mangle -X
+  sudo ufw reload &>/dev/null
+  echo "iptables cleaned."
+}
+
 _compose() {
   docker compose --env-file "${COMPOSE_DIR}/.env" -f "${COMPOSE_DIR}/docker-compose.yml" "$@"
 }
@@ -29,10 +41,14 @@ case "$cmd" in
     mkdir -p "$DATA_DIR"
     _compose up -d
     echo "EasyConnect started."
+    # watch for container exit and clean up iptables automatically
+    (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
+    disown
     ;;
 
   stop)
     _compose down
+    _cleanup_iptables
     echo "EasyConnect stopped."
     ;;
 
@@ -64,6 +80,7 @@ case "$cmd" in
     _xhost_allow
     mkdir -p "$DATA_DIR"
     _compose down
+    _cleanup_iptables
     _compose up -d --force-recreate
     echo "EasyConnect recreated."
     ;;

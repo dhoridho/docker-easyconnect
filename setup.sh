@@ -160,12 +160,18 @@ EOF
 
 chmod +x "${INSTALL_DIR}/ec.sh"
 
-# ── 7. Fix DNS (bypass systemd-resolved) ─────────────────────────────────────
+# ── 7. Passwordless sudo for iptables (needed for cleanup on VPN disconnect) ──
+info "Configuring passwordless sudo for iptables..."
+echo "${USER} ALL=(ALL) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ufw" | sudo tee /etc/sudoers.d/easyconnect-iptables > /dev/null
+sudo chmod 440 /etc/sudoers.d/easyconnect-iptables
+info "Done."
+
+# ── 8. Fix DNS (bypass systemd-resolved) ─────────────────────────────────────
 if grep -q "127.0.0.53" /etc/resolv.conf 2>/dev/null; then
-  warning "systemd-resolved detected. Fixing DNS to use 8.8.8.8 / 1.1.1.1..."
+  warning "systemd-resolved detected. Fixing DNS to use 1.1.1.1 / 192.168.1.1..."
   sudo rm -f /etc/resolv.conf
-  echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
-  echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf > /dev/null
+  echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf > /dev/null
+  echo "nameserver 192.168.1.1" | sudo tee -a /etc/resolv.conf > /dev/null
   info "DNS fixed."
 else
   info "DNS looks fine, skipping."
