@@ -6,8 +6,7 @@ DATA_DIR="${HOME}/.easyconnect-data"
 
 _require_tun() {
   if [[ ! -e /dev/net/tun ]]; then
-    echo "ERROR: /dev/net/tun missing. Load tun module:"
-    echo "  sudo modprobe tun"
+    echo "ERROR: /dev/net/tun missing. Run: sudo modprobe tun"
     exit 1
   fi
 }
@@ -17,7 +16,6 @@ _xhost_allow() {
 }
 
 _cleanup_iptables() {
-  echo "Cleaning up EasyConnect iptables rules..."
   sudo iptables -F
   sudo iptables -X
   sudo iptables -t nat -F
@@ -25,14 +23,11 @@ _cleanup_iptables() {
   sudo iptables -t mangle -F
   sudo iptables -t mangle -X
   sudo ufw reload &>/dev/null
-
-  # Re-detect router for current network and update DNS
   local router
   router=$(ip route show default | awk '/default/ {print $3; exit}')
   if [[ -n "$router" ]]; then
     { echo "nameserver 1.1.1.1"; echo "nameserver ${router}"; } | sudo tee /etc/resolv.conf > /dev/null
   fi
-  echo "iptables cleaned."
 }
 
 _compose() {
@@ -54,10 +49,10 @@ case "$cmd" in
     if _is_running; then
       if _vpn_connected; then
         notify-send "EasyConnect" "Already running — VPN connected." --icon=network-vpn 2>/dev/null || true
-        echo "EasyConnect already running. VPN: connected (tun0 up)"
+        echo "already running — VPN connected"
       else
         notify-send "EasyConnect" "Already running — not connected yet." --icon=network-vpn 2>/dev/null || true
-        echo "EasyConnect already running. VPN: not connected yet"
+        echo "already running — not connected yet"
       fi
       exit 0
     fi
@@ -65,7 +60,7 @@ case "$cmd" in
     _xhost_allow
     mkdir -p "$DATA_DIR"
     _compose up -d
-    echo "EasyConnect started."
+    echo "started"
     (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
     disown
     ;;
@@ -73,14 +68,14 @@ case "$cmd" in
   stop)
     _compose down
     _cleanup_iptables
-    echo "EasyConnect stopped."
+    echo "stopped"
     ;;
 
   restart)
     _require_tun
     _xhost_allow
     _compose restart
-    echo "EasyConnect restarted."
+    echo "restarted"
     ;;
 
   logs)
@@ -89,7 +84,7 @@ case "$cmd" in
 
   status)
     _compose ps
-    _vpn_connected && echo "VPN: connected (tun0 up)" || echo "VPN: not connected"
+    _vpn_connected && echo "VPN: connected" || echo "VPN: not connected"
     ;;
 
   shell)
@@ -107,19 +102,19 @@ case "$cmd" in
     _compose down
     _cleanup_iptables
     _compose up -d --force-recreate
-    echo "EasyConnect recreated."
+    echo "recreated"
     ;;
 
   help|*)
-    echo "Usage: ec.sh <command>"
+    echo "usage: ec <command>"
     echo ""
-    echo "  start     — allow X11, create data dir, start container"
-    echo "  stop      — stop and remove container"
-    echo "  restart   — restart container"
-    echo "  recreate  — full stop + fresh start (keeps data)"
-    echo "  logs      — follow container logs"
-    echo "  status    — show container status"
-    echo "  shell     — exec bash inside container"
-    echo "  pull      — pull latest image"
+    echo "  start     start VPN"
+    echo "  stop      stop VPN"
+    echo "  restart   restart container"
+    echo "  recreate  stop, clean, restart (keeps data)"
+    echo "  status    container + VPN status"
+    echo "  logs      follow logs"
+    echo "  shell     bash inside container"
+    echo "  pull      pull latest image"
     ;;
 esac

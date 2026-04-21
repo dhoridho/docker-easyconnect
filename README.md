@@ -1,67 +1,57 @@
-# EasyConnect Docker Setup
+# docker-easyconnect
 
-Runs Sangfor EasyConnect VPN client in Docker with X11 GUI forwarding.
+Sangfor EasyConnect VPN in Docker with X11 GUI, persistent credentials, and automatic iptables cleanup on disconnect.
 
 ## Requirements
 
 - Docker + Docker Compose
 - X11 display server
-- TUN kernel module: `sudo modprobe tun`
+- `sudo modprobe tun` if `/dev/net/tun` is missing
 
-## Files
+## Setup
 
-| File | Purpose |
-|------|---------|
-| `docker-compose.yml` | Container definition |
-| `.env` | Environment config |
-| `ec.sh` | Management script |
+```bash
+git clone https://github.com/dhoridho/docker-easyconnect
+cd docker-easyconnect
+bash setup.sh
+source ~/.bashrc
+```
+
+First launch: enter your company VPN URL, connect, close the window. Credentials save to `~/.easyconnect-data` on exit.
 
 ## Usage
 
 ```bash
-ec start      # start VPN GUI
-ec stop       # stop container
+ec start      # start VPN
+ec stop       # stop VPN
+ec status     # container + VPN connection status
 ec restart    # restart container
-ec recreate   # full stop + fresh start (keeps saved credentials)
-ec logs       # follow container logs
-ec status     # show container status
+ec recreate   # full stop + fresh start (keeps credentials)
+ec logs       # follow logs
 ec shell      # bash inside container
 ec pull       # pull latest image
 ```
 
-> Add alias to shell: `alias ec="${HOME}/Docker/EasyConnect/ec.sh"`
+`ec` is installed to `/usr/local/bin` — works from anywhere, no shell alias needed.
 
-## Data Persistence
+## How it works
 
-Credentials and config saved to `~/.easyconnect-data` — survives container restarts and recreation.
+**GUI close stops the container** — `EXIT=1` breaks EasyConnect's internal restart loop. Closing the window exits cleanly instead of looping forever.
 
-## Key Design Decisions
+**iptables cleanup on disconnect** — EasyConnect adds iptables rules on connect that survive container stop. `ec stop` (and the background watcher on window close) flushes all rules and reloads UFW automatically.
 
-**`EXIT=1`** — EasyConnect's internal startup script loops forever by default, restarting the GUI after every close. `EXIT=1` sets `MAX_RETRY=0`, so closing the window stops the container cleanly.
+**DNS** — `systemd-resolved` conflicts with EasyConnect. `setup.sh` replaces `/etc/resolv.conf` with a static file using `1.1.1.1` + your router gateway. Avoid `8.8.8.8` — EasyConnect routes it through `tun0`, breaking DNS when VPN is down. On disconnect, DNS is re-detected from the current network's default route.
 
-**`restart: "no"`** — Container does not auto-restart. Run `ec start` manually when you need the VPN.
+**Credentials** — saved to `~/.easyconnect-data` which maps to `/root/conf` inside the container (not `/root/.easyconnect` — common mistake).
 
-**`--net=host`** — Required for VPN traffic to route through the host network stack.
-
-## DNS
-
-EasyConnect can break DNS by conflicting with `systemd-resolved`. Fixed by replacing the managed symlink with a static file:
-
-```bash
-sudo rm -f /etc/resolv.conf
-echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
-echo "nameserver 192.168.1.1" | sudo tee -a /etc/resolv.conf
-```
-
-**Why not 8.8.8.8:** EasyConnect routes `8.8.8.8` through `tun0` — unreachable when VPN is down, breaking DNS entirely.
-
-**Tradeoff:** `systemd-resolved` is bypassed. VPN-pushed DNS (internal company hostnames) won't auto-apply. Fine for internet-only VPN use.
+**Image** — pinned to a specific digest. To upgrade, pull a new image, update `IMAGE` in `.env`, run `ec recreate`.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| GUI doesn't appear | Run `xhost +local:docker` then `ec restart` |
+| GUI doesn't appear | `xhost +local:docker` then `ec restart` |
 | `/dev/net/tun` missing | `sudo modprobe tun` |
-| Container exits immediately | Check `ec logs` |
-| Old container with wrong restart policy | `ec recreate` |
+| DNS broken after disconnect | `ec stop` re-runs cleanup; or run `ec stop` manually |
+| Container exits immediately | `ec logs` |
+| No internet without VPN | Check `/etc/resolv.conf` — should have `1.1.1.1` and your router IP |
