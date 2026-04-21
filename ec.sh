@@ -52,8 +52,13 @@ cmd="${1:-help}"
 case "$cmd" in
   start)
     if _is_running; then
-      echo "EasyConnect already running."
-      _vpn_connected && echo "VPN: connected (tun0 up)" || echo "VPN: container up, not connected yet"
+      if _vpn_connected; then
+        notify-send "EasyConnect" "Already running — VPN connected." --icon=network-vpn 2>/dev/null || true
+        echo "EasyConnect already running. VPN: connected (tun0 up)"
+      else
+        notify-send "EasyConnect" "Already running — not connected yet." --icon=network-vpn 2>/dev/null || true
+        echo "EasyConnect already running. VPN: not connected yet"
+      fi
       exit 0
     fi
     _require_tun
