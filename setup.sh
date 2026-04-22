@@ -104,7 +104,11 @@ sudo chmod 440 /etc/sudoers.d/easyconnect-iptables
 if grep -q "127.0.0.53" /etc/resolv.conf 2>/dev/null; then
   warning "systemd-resolved detected, fixing DNS..."
   sudo rm -f /etc/resolv.conf
-  { echo "nameserver 1.1.1.1"; echo "nameserver ${ROUTER_IP}"; } | sudo tee /etc/resolv.conf > /dev/null
+  dns=$(nmcli dev show 2>/dev/null | awk '/IP4.DNS/ {print "nameserver "$2}' | head -2)
+  if [[ -z "$dns" ]]; then
+    dns="nameserver 1.1.1.1${ROUTER_IP:+$'\n'nameserver ${ROUTER_IP}}"
+  fi
+  echo "$dns" | sudo tee /etc/resolv.conf > /dev/null
 fi
 
 info "Pulling image and extracting icon..."

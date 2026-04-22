@@ -24,11 +24,14 @@ _cleanup_iptables() {
   sudo iptables -t mangle -X 2>/dev/null || true
   sudo ufw reload &>/dev/null || true
   ip link show tun0 &>/dev/null && sudo ip link delete tun0 2>/dev/null || true
-  local router
-  router=$(ip route show default | awk '/default/ {print $3; exit}')
-  if [[ -n "$router" ]]; then
-    { echo "nameserver 1.1.1.1"; echo "nameserver ${router}"; } | sudo tee /etc/resolv.conf > /dev/null
+  local dns
+  dns=$(nmcli dev show 2>/dev/null | awk '/IP4.DNS/ {print "nameserver "$2}' | head -2)
+  if [[ -z "$dns" ]]; then
+    local router
+    router=$(ip route show default | awk '/default/ {print $3; exit}')
+    dns="nameserver 1.1.1.1${router:+$'\n'nameserver ${router}}"
   fi
+  echo "$dns" | sudo tee /etc/resolv.conf > /dev/null
 }
 
 _compose() {
@@ -73,7 +76,7 @@ _watch_disconnect() {
       was_connected=1
     elif [[ $was_connected -eq 1 ]]; then
       if [[ -n "$clip" ]]; then
-        action=$(notify-send -u critical "EasyConnect" "VPN disconnected — Re-Login required." --action="copy=Copy Password" --wait 2>/dev/null)
+        action=$(timeout 5 notify-send -u critical "EasyConnect" "VPN disconnected — Re-Login required." --action="copy=Copy Password" --wait 2>/dev/null)
         [[ "$action" == "copy" ]] && echo -n "$clip" | xclip -selection clipboard 2>/dev/null || true
       else
         notify-send -u critical "EasyConnect" "VPN disconnected — Re-Login required." 2>/dev/null || true
