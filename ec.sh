@@ -24,14 +24,9 @@ _cleanup_iptables() {
   sudo iptables -t mangle -X 2>/dev/null || true
   sudo ufw reload &>/dev/null || true
   ip link show tun0 &>/dev/null && sudo ip link delete tun0 2>/dev/null || true
-  local dns
-  dns=$(nmcli dev show 2>/dev/null | awk '/IP4.DNS/ {print "nameserver "$2}' | head -2)
-  if [[ -z "$dns" ]]; then
-    local router
-    router=$(ip route show default | awk '/default/ {print $3; exit}')
-    dns="nameserver 1.1.1.1${router:+$'\n'nameserver ${router}}"
+  if [[ ! -L /etc/resolv.conf ]]; then
+    sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf 2>/dev/null || true
   fi
-  echo "$dns" | sudo tee /etc/resolv.conf > /dev/null
 }
 
 _compose() {

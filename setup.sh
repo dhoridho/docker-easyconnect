@@ -98,17 +98,12 @@ info "Installing ec..."
 sudo ln -sf "${INSTALL_DIR}/ec.sh" /usr/local/bin/ec
 
 info "Sudoers..."
-echo "${USER} ALL=(ALL) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ufw, /usr/bin/tee /etc/resolv.conf, /usr/sbin/ip" | sudo tee /etc/sudoers.d/easyconnect-iptables > /dev/null
+echo "${USER} ALL=(ALL) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ufw, /usr/sbin/ip, /usr/bin/ln" | sudo tee /etc/sudoers.d/easyconnect-iptables > /dev/null
 sudo chmod 440 /etc/sudoers.d/easyconnect-iptables
 
-if grep -q "127.0.0.53" /etc/resolv.conf 2>/dev/null; then
-  warning "systemd-resolved detected, fixing DNS..."
-  sudo rm -f /etc/resolv.conf
-  dns=$(nmcli dev show 2>/dev/null | awk '/IP4.DNS/ {print "nameserver "$2}' | head -2)
-  if [[ -z "$dns" ]]; then
-    dns="nameserver 1.1.1.1${ROUTER_IP:+$'\n'nameserver ${ROUTER_IP}}"
-  fi
-  echo "$dns" | sudo tee /etc/resolv.conf > /dev/null
+if [[ ! -L /etc/resolv.conf ]] || [[ "$(readlink /etc/resolv.conf)" != "/run/systemd/resolve/resolv.conf" ]]; then
+  warning "Fixing DNS — symlinking to systemd-resolved uplink..."
+  sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 fi
 
 info "Pulling image and extracting icon..."
