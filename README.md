@@ -35,16 +35,18 @@ First launch: enter your company VPN URL, connect, close the window. Credentials
 
 ## Usage
 
-```bash
-ec start      # start VPN (GUI)
-ec stop       # stop VPN
-ec status     # container + VPN connection status
-ec restart    # restart container
-ec recreate   # full stop + fresh start (keeps credentials)
-ec logs       # follow logs
-ec shell      # bash inside container
-ec pull       # pull latest image
-```
+| Command       | What it does |
+|---------------|--------------|
+| `ec start`    | Start VPN (GUI) |
+| `ec cli`      | Start VPN headless using credentials from `.env` |
+| `ec stop`     | Stop VPN, flush iptables, delete `tun0`, restore DNS |
+| `ec status`   | Container + VPN connection state + keepalive PID |
+| `ec restart`  | Restart container |
+| `ec recreate` | Full stop + fresh start (keeps credentials) |
+| `ec fix`      | Repair host network when VPN is stopped — flush iptables, delete `tun0`, restore DNS symlink, flush resolved cache, reapply active NetworkManager connection. Use when net is broken after a crash or unclean exit. |
+| `ec logs`     | Follow container logs |
+| `ec shell`    | Bash inside container |
+| `ec pull`     | Pull latest image |
 
 `ec` is installed to `/usr/local/bin` — works from anywhere, no shell alias needed.
 

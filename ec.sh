@@ -176,6 +176,19 @@ case "$cmd" in
     echo "recreated"
     ;;
 
+  fix)
+    if _is_running; then
+      echo "VPN running — stop it first with: ec stop"
+      exit 1
+    fi
+    _cleanup_iptables
+    active=$(nmcli -t -f NAME,DEVICE con show --active | grep -v ':lo$' | grep -v ':docker' | grep -v ':br-' | head -1 | cut -d: -f1)
+    if [[ -n "$active" ]]; then
+      nmcli con up "$active" &>/dev/null && echo "reapplied: $active" || echo "NM reapply failed"
+    fi
+    echo "fixed"
+    ;;
+
   help|*)
     echo "usage: ec <command>"
     echo ""
@@ -184,6 +197,7 @@ case "$cmd" in
     echo "  stop      stop VPN"
     echo "  restart   restart container"
     echo "  recreate  stop, clean, restart (keeps data)"
+    echo "  fix       repair host network (iptables, tun0, DNS, NM reapply)"
     echo "  status    container + VPN status"
     echo "  logs      follow logs"
     echo "  shell     bash inside container"
