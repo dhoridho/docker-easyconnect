@@ -27,6 +27,7 @@ _cleanup_iptables() {
   if [[ ! -L /etc/resolv.conf ]]; then
     sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf 2>/dev/null || true
   fi
+  resolvectl flush-caches 2>/dev/null || true
 }
 
 _compose() {

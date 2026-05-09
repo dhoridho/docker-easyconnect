@@ -8,8 +8,6 @@ DESKTOP_PATH="${HOME}/.local/share/applications/easyconnect.desktop"
 BASHRC="${HOME}/.bashrc"
 IMAGE="hagb/docker-easyconnect@sha256:40c411e71198111871ac281cee78ff0ae961139897674c7df8fa5eec0da78e80"
 IMAGE_CLI="hagb/docker-easyconnect@sha256:2ffb7880436e25fb3764b64d18bd5418d81dc03b05899de68ff7c34b80e0363a"
-ROUTER_IP=$(ip route show default | awk '/default/ {print $3; exit}')
-ROUTER_IP="${ROUTER_IP:-192.168.1.1}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
