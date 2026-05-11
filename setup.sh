@@ -32,7 +32,7 @@ if [[ ! -e /dev/net/tun ]]; then
 fi
 
 info "Dependencies..."
-sudo apt-get install -y xclip libnotify-bin
+sudo apt-get install -y xclip libnotify-bin desktop-file-utils
 
 info "Writing config files..."
 mkdir -p "${INSTALL_DIR}"
@@ -95,12 +95,13 @@ StartupNotify=false
 EOF
 update-desktop-database "${HOME}/.local/share/applications/" 2>/dev/null || true
 
-info "Cleaning up old aliases..."
+info "Shell alias..."
 sed -i '/^alias ec=/d' "${HOME}/.bashrc"
 sed -i '/alias easyconnect=/,/hagb\/docker-easyconnect/d' "${HOME}/.bashrc"
 sed -i '/alias econnect-stop=/d' "${HOME}/.bashrc"
+echo "alias ec=\"${INSTALL_DIR}/ec.sh\"" >> "${HOME}/.bashrc"
 
 echo ""
-echo -e "${GREEN}Done.${NC} Run: ec start"
+echo -e "${GREEN}Done.${NC} Run: source ~/.bashrc && ec start"
 echo "Edit ${INSTALL_DIR}/.env to set VPN credentials."
 echo "First launch: enter your VPN URL, connect, then close the window to save credentials."
