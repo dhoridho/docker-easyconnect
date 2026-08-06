@@ -2,9 +2,11 @@ services:
   easyconnect:
     image: ${IMAGE:-hagb/docker-easyconnect:latest}
     container_name: easyconnect
-    network_mode: host
     restart: "no"
     stop_grace_period: 5s
+    ports:
+      - "1080:1080"
+      - "8888:8888"
     devices:
       - /dev/net/tun
     cap_add:
@@ -21,9 +23,11 @@ services:
   easyconnect-cli:
     image: ${IMAGE_CLI:-hagb/docker-easyconnect:cli}
     container_name: easyconnect
-    network_mode: host
     restart: "no"
     stop_grace_period: 5s
+    ports:
+      - "1080:1080"
+      - "8888:8888"
     devices:
       - /dev/net/tun
     cap_add:
