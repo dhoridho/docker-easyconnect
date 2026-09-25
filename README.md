@@ -58,7 +58,7 @@ First launch: enter your company VPN URL, connect, close the window. Credentials
 
 **iptables cleanup on disconnect** — EasyConnect adds iptables rules on connect that survive container stop. `ec stop` (and the background watcher on window close) flushes all rules and reloads UFW automatically. Also deletes `tun0` if still up.
 
-**DNS** — `systemd-resolved` conflicts with EasyConnect. `setup.sh` replaces `/etc/resolv.conf` with a static file using `1.1.1.1` + your router gateway. Avoid `8.8.8.8` — EasyConnect routes it through `tun0`, breaking DNS when VPN is down. On disconnect, DNS is re-detected from the current network's default route.
+**DNS** — EasyConnect's own `ECAgent` hooks `systemd-resolved` directly once connected (confirmed via `need_hook_dns_server.ini` in its data dir), so `ec.sh` does not set DNS on connect — a prior version did (`resolvectl` + a hardcoded `8.8.8.8`) and it raced against ECAgent's own writes, which was the actual cause of intermittent DNS breakage. `setup.sh` only ensures `/etc/resolv.conf` starts as a symlink to `/run/systemd/resolve/resolv.conf` (systemd-resolved's normal uplink file) so ECAgent has a clean target to hook. On disconnect/stop/fix, `_cleanup_iptables` restores that symlink and flushes the resolved cache.
 
 **Credentials** — saved to `~/.easyconnect-data` which maps to `/root/conf` inside the container (not `/root/.easyconnect` — common mistake).
 

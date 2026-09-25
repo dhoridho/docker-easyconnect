@@ -30,6 +30,15 @@ _cleanup_iptables() {
   resolvectl flush-caches 2>/dev/null || true
 }
 
+# ponytail: no custom DNS/route override here. /root/.sangfor data confirms
+# EasyConnect's own ECAgent hooks systemd-resolved directly on connect
+# (need_hook_dns_server.ini lists it as a supported target). A second script
+# forcing resolvectl/resolv.conf on top of that (former _split_tunnel, plus
+# a hardcoded 8.8.8.8 the README itself warned conflicts with EasyConnect's
+# tun0 host route) raced against ECAgent's own DNS writes — that race was
+# the actual cause of the intermittent DNS breakage. Removed; only cleanup
+# on disconnect (_cleanup_iptables) touches resolv.conf now.
+
 _compose() {
   docker compose --env-file "${COMPOSE_DIR}/.env" -f "${COMPOSE_DIR}/docker-compose.yml" "$@"
 }
