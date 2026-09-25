@@ -95,7 +95,7 @@ _watch_disconnect() {
 cmd="${1:-help}"
 
 case "$cmd" in
-  start)
+  up)
     if _is_running; then
       if _vpn_connected; then
         notify-send "EasyConnect" "Already running — VPN connected." --icon=network-vpn 2>/dev/null || true
@@ -125,7 +125,7 @@ case "$cmd" in
 
   cli)
     if _is_running; then
-      echo "already running — stop it first with: ec stop"
+      echo "already running — stop it first with: ec down"
       exit 1
     fi
     _require_tun
@@ -136,7 +136,7 @@ case "$cmd" in
     disown
     ;;
 
-  stop)
+  down)
     if ! _is_running; then
       echo "not running"
       exit 0
@@ -149,10 +149,10 @@ case "$cmd" in
   toggle)
     if _is_running; then
       notify-send -i network-vpn "EasyConnect" "Stopping..." 2>/dev/null || true
-      "$0" stop
+      "$0" down
     else
       notify-send -i network-vpn "EasyConnect" "Starting..." 2>/dev/null || true
-      "$0" start
+      "$0" up
     fi
     ;;
 
@@ -197,7 +197,7 @@ case "$cmd" in
 
   fix)
     if _is_running; then
-      echo "VPN running — stop it first with: ec stop"
+      echo "VPN running — stop it first with: ec down"
       exit 1
     fi
     _cleanup_iptables
@@ -211,12 +211,12 @@ case "$cmd" in
   help|*)
     echo "usage: ec <command>"
     echo ""
-    echo "  start     start VPN (GUI)"
+    echo "  up        start VPN (GUI)"
     echo "  cli       start VPN (headless, uses credentials from .env)"
-    echo "  stop      stop VPN"
-    echo "  toggle    start if stopped, stop if running (for launchers/panel toggles)"
+    echo "  down      stop VPN"
+    echo "  toggle    up if stopped, down if running (for launchers/panel toggles)"
     echo "  restart   restart container"
-    echo "  recreate  stop, clean, restart (keeps data)"
+    echo "  recreate  down, clean, up (keeps data)"
     echo "  fix       repair host network (iptables, tun0, DNS, NM reapply)"
     echo "  status    container + VPN status"
     echo "  logs      follow logs"

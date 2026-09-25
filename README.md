@@ -37,12 +37,13 @@ First launch: enter your company VPN URL, connect, close the window. Credentials
 
 | Command       | What it does |
 |---------------|--------------|
-| `ec start`    | Start VPN (GUI) |
+| `ec up`       | Start VPN (GUI) |
 | `ec cli`      | Start VPN headless using credentials from `.env` |
-| `ec stop`     | Stop VPN, flush iptables, delete `tun0`, restore DNS |
+| `ec down`     | Stop VPN, flush iptables, delete `tun0`, restore DNS |
+| `ec toggle`   | `ec up` if stopped, `ec down` if running |
 | `ec status`   | Container + VPN connection state + keepalive PID |
 | `ec restart`  | Restart container |
-| `ec recreate` | Full stop + fresh start (keeps credentials) |
+| `ec recreate` | Full down + fresh up (keeps credentials) |
 | `ec fix`      | Repair host network when VPN is stopped — flush iptables, delete `tun0`, restore DNS symlink, flush resolved cache, reapply active NetworkManager connection. Use when net is broken after a crash or unclean exit. |
 | `ec logs`     | Follow container logs |
 | `ec shell`    | Bash inside container |
@@ -54,9 +55,9 @@ First launch: enter your company VPN URL, connect, close the window. Credentials
 
 **GUI close stops the container** — `EXIT=1` breaks EasyConnect's internal restart loop. Closing the window exits cleanly instead of looping forever.
 
-**Clipboard auto-fill** — if `CLIP_TEXT` is set in `.env`, `ec start` copies it to the host clipboard automatically. Paste into the VPN password field on first connection.
+**Clipboard auto-fill** — if `CLIP_TEXT` is set in `.env`, `ec up` copies it to the host clipboard automatically. Paste into the VPN password field on first connection.
 
-**iptables cleanup on disconnect** — EasyConnect adds iptables rules on connect that survive container stop. `ec stop` (and the background watcher on window close) flushes all rules and reloads UFW automatically. Also deletes `tun0` if still up.
+**iptables cleanup on disconnect** — EasyConnect adds iptables rules on connect that survive container stop. `ec down` (and the background watcher on window close) flushes all rules and reloads UFW automatically. Also deletes `tun0` if still up.
 
 **DNS** — EasyConnect's own `ECAgent` hooks `systemd-resolved` directly once connected (confirmed via `need_hook_dns_server.ini` in its data dir), so `ec.sh` does not set DNS on connect — a prior version did (`resolvectl` + a hardcoded `8.8.8.8`) and it raced against ECAgent's own writes, which was the actual cause of intermittent DNS breakage. `setup.sh` only ensures `/etc/resolv.conf` starts as a symlink to `/run/systemd/resolve/resolv.conf` (systemd-resolved's normal uplink file) so ECAgent has a clean target to hook. On disconnect/stop/fix, `_cleanup_iptables` restores that symlink and flushes the resolved cache.
 
@@ -74,7 +75,7 @@ A headless CLI service is included (`ec cli`) using `hagb/docker-easyconnect:cli
 |---------|-----|
 | GUI doesn't appear | `xhost +local:docker` then `ec restart` |
 | `/dev/net/tun` missing | `sudo modprobe tun` |
-| DNS broken after disconnect | `ec stop` re-runs cleanup automatically |
+| DNS broken after disconnect | `ec down` re-runs cleanup automatically |
 | Container exits immediately | `ec logs` |
 | No internet without VPN | Check `/etc/resolv.conf` — should have `1.1.1.1` and your router IP |
 | Clipboard not filled | Check `CLIP_TEXT` in `.env`; ensure `xclip` is installed |

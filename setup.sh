@@ -102,6 +102,6 @@ sed -i '/alias econnect-stop=/d' "${HOME}/.bashrc"
 echo "alias ec=\"${INSTALL_DIR}/ec.sh\"" >> "${HOME}/.bashrc"
 
 echo ""
-echo -e "${GREEN}Done.${NC} Run: source ~/.bashrc && ec start"
+echo -e "${GREEN}Done.${NC} Run: source ~/.bashrc && ec up"
 echo "Edit ${INSTALL_DIR}/.env to set VPN credentials."
 echo "First launch: enter your VPN URL, connect, then close the window to save credentials."
