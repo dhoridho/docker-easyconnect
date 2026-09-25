@@ -146,6 +146,16 @@ case "$cmd" in
     echo "stopped"
     ;;
 
+  toggle)
+    if _is_running; then
+      notify-send -i network-vpn "EasyConnect" "Stopping..." 2>/dev/null || true
+      "$0" stop
+    else
+      notify-send -i network-vpn "EasyConnect" "Starting..." 2>/dev/null || true
+      "$0" start
+    fi
+    ;;
+
   restart)
     _require_tun
     _xhost_allow
@@ -204,6 +214,7 @@ case "$cmd" in
     echo "  start     start VPN (GUI)"
     echo "  cli       start VPN (headless, uses credentials from .env)"
     echo "  stop      stop VPN"
+    echo "  toggle    start if stopped, stop if running (for launchers/panel toggles)"
     echo "  restart   restart container"
     echo "  recreate  stop, clean, restart (keeps data)"
     echo "  fix       repair host network (iptables, tun0, DNS, NM reapply)"
