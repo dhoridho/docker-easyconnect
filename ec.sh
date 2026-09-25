@@ -30,6 +30,27 @@ _cleanup_iptables() {
   resolvectl flush-caches 2>/dev/null || true
 }
 
+# ponytail: ECAgent (net=host, NET_ADMIN) installs a host iptables NAT rule
+# redirecting all outbound UDP:53 to 127.0.0.1:5373 as soon as the container
+# starts — well before login/tun0. It binds 127.0.0.1:5373 immediately too
+# (so "is it listening" is not a usable signal — checked, it's bound from
+# the start and still blackholes queries), but doesn't actually answer DNS
+# until the VPN session is authenticated. Drop *only* that rule whenever a
+# real resolution through it is currently failing; keep checking for the
+# whole session since ECAgent can re-add it.
+_guard_dns() {
+  local match=(-p udp ! --sport 7789 --dport 53 -j DNAT --to-destination 127.0.0.1:5373)
+  while _is_running; do
+    if sudo iptables -t nat -C OUTPUT "${match[@]}" 2>/dev/null; then
+      if ! timeout 1 getent hosts claude.com &>/dev/null; then
+        sudo iptables -t nat -D OUTPUT "${match[@]}" 2>/dev/null || true
+        resolvectl flush-caches 2>/dev/null || true
+      fi
+    fi
+    sleep 1
+  done
+}
+
 # ponytail: no custom DNS/route override here. /root/.sangfor data confirms
 # EasyConnect's own ECAgent hooks systemd-resolved directly on connect
 # (need_hook_dns_server.ini lists it as a supported target). A second script
@@ -117,6 +138,8 @@ case "$cmd" in
     echo "started (GUI)"
     (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
     disown
+    (_guard_dns) &
+    disown
     (_keepalive) &
     disown
     (_watch_disconnect) &
@@ -133,6 +156,8 @@ case "$cmd" in
     _compose --profile cli up -d easyconnect-cli
     echo "started (CLI)"
     (docker wait easyconnect &>/dev/null && _cleanup_iptables) &
+    disown
+    (_guard_dns) &
     disown
     ;;
 
