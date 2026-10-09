@@ -86,7 +86,7 @@ cat > "${DESKTOP_PATH}" <<EOF
 [Desktop Entry]
 Name=EasyConnect
 Comment=Sangfor EasyConnect VPN
-Exec=${INSTALL_DIR}/ec.sh start
+Exec=${INSTALL_DIR}/ec.sh toggle
 Icon=${ICON_PATH}
 Type=Application
 Categories=Network;VPN;

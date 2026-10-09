@@ -116,7 +116,7 @@ _watch_disconnect() {
 cmd="${1:-help}"
 
 case "$cmd" in
-  up)
+  up|start)
     if _is_running; then
       if _vpn_connected; then
         notify-send "EasyConnect" "Already running — VPN connected." --icon=network-vpn 2>/dev/null || true
@@ -161,7 +161,7 @@ case "$cmd" in
     disown
     ;;
 
-  down)
+  down|stop)
     if ! _is_running; then
       echo "not running"
       exit 0

@@ -22,6 +22,8 @@ bash setup.sh
 source ~/.bashrc
 ```
 
+> **Catatan (Bahasa Indonesia)**: Untuk penjelasan lengkap mengenai solusi masalah DNS / Google tidak bisa diakses saat VPN aktif, baca [PANDUAN_SETUP.md](PANDUAN_SETUP.md).
+
 Edit `~/Docker/EasyConnect/.env` and fill in your credentials:
 
 ```
